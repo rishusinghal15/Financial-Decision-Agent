@@ -15,7 +15,7 @@ On every session start, do this in order:
 1. Read this file completely.
 2. Check the log file path in §2.
 3. Append a `SESSION START` entry using §5.1.
-4. For every user turn, append a summary entry using §5.2.
+4. For every user turn, appenda summary entry using §5.2.
 5. When building, testing, or packaging the solution, follow the project contract in §6.
 
 Do not skip logging or rewrite old log entries. Sub-agents and worktrees use the same log file.

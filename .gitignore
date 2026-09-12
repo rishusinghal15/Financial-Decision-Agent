@@ -1,0 +1,37 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+
+# Environment Variables & Secrets
+.env
+.env.local
+
+# Agent Transcript Log (must not be committed to git per AGENTS.md)
+log.txt
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Submission Zip Package
+code.zip
+
+# Scratch & Temporary Diagnostic Scripts
+scratch_*.py
+scratch/
+code/evaluation/inspect_*.py
+code/evaluation/audit_*.py
+code/evaluation/detailed_sample_tracer.py
+code/evaluation/evaluate_baseline.py
+code/evaluation/forensic_audit.py
+code/evaluation/full_sample_audit.py
+code/evaluation/analyze_math.py
+code/evaluation/sample_pipeline_output.csv
+
+# OS specific
+.DS_Store
+Thumbs.db
