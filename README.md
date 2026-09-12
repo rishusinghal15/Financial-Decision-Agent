@@ -11,6 +11,8 @@
 
 ## 1. Project Overview
 
+This project was developed as a submission for the **HackerRank Orchestrate September 2026** hackathon, where the objective was to build an AI-powered financial decision agent capable of evaluating whether a requested expense is safely affordable based on cash flow, financial events, payment options, and user-provided information.
+
 Making sound financial decisions requires more than just checking an account balance on payday. A purchase that looks affordable today can easily trigger a future liquidity crisis when upcoming rent, insurance premiums, utility bills, debt obligations, or essential living expenses come due before the next income credit.
 
 The **Financial Decision Agent** is an autonomous financial intelligence system engineered to evaluate arbitrary purchase or payment requests. It reconstructs a user's multi-month financial trajectory from structured profiles, historical events, pending transactions, dated foreign-exchange rates, seller payment options, and unstructured multimodal evidence (messages, payslips, invoices).
@@ -24,7 +26,15 @@ The system determines with mathematical rigor whether a user should:
 
 ---
 
-## 2. Problem Statement
+## 2. HackerRank Orchestrate — September 2026
+
+This project was built for the **HackerRank Orchestrate September 2026** hackathon/challenge. The challenge focused on building an AI-powered financial agent that evaluates spending requests using financial profiles, financial events, payment options, messages, images, and exchange-rate data.
+
+The implementation combines Gemini-powered structured information extraction with deterministic financial forecasting, affordability analysis, payment-plan evaluation, safety validation, and decision ranking. It is maintained and documented here as an open-source reference architecture for safety-constrained financial reasoning systems.
+
+---
+
+## 3. Problem Statement
 
 Given:
 * **Requested Expense**: Purchase amount, request date, target completion deadline, and payment flexibility.
@@ -38,7 +48,7 @@ The engine must evaluate whether the purchase is safe, compute the maximum amoun
 
 ---
 
-## 3. Core Objective
+## 4. Core Objective
 
 For every financial request, the engine answers seven critical questions:
 
@@ -54,7 +64,7 @@ For every financial request, the engine answers seven critical questions:
 
 ---
 
-## 4. Key Features
+## 5. Key Features
 
 * **AI-Assisted Multimodal Fact Extraction**: Leverages Google Gemini models (`gemini-3.6-flash`) to parse unstructured messages and visual documents (payslips, receipts) into strongly-typed fact schemas (`ExtractedFact`).
 * **4-Tier Conflict Resolution & Event Reconciliation**: Reconciles contradicting ledger entries, pending authorizations, and AI-extracted amendments using strict provenance tracking and precedence hierarchies.
@@ -70,7 +80,7 @@ For every financial request, the engine answers seven critical questions:
 
 ---
 
-## 5. System Architecture
+## 6. System Architecture
 
 ```
                   ┌────────────────────────────────────────┐
@@ -133,7 +143,7 @@ For every financial request, the engine answers seven critical questions:
 
 ---
 
-## 6. AI + Deterministic Design Principle
+## 7. AI + Deterministic Design Principle
 
 ### *"AI proposes facts; deterministic logic makes financial decisions."*
 
@@ -155,7 +165,7 @@ Financial software requires 100% auditability, zero arithmetic hallucinations, a
 
 ---
 
-## 7. Financial Forecasting & Decision Model
+## 8. Financial Forecasting & Decision Model
 
 ### 90-Day Cash Flow Simulation
 The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
@@ -207,7 +217,7 @@ The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
 
 ---
 
-## 8. Payment Method Specifications
+## 9. Payment Method Specifications
 
 | Payment Method | Activation Conditions | Required `payment_plan` Format |
 |---|---|---|
@@ -219,7 +229,7 @@ The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
 
 ---
 
-## 9. Deterministic Plan Ranker (6-Key Lexicographical Ordering)
+## 10. Deterministic Plan Ranker (6-Key Lexicographical Ordering)
 
 When multiple safe payment candidates exist, the `PlanRanker` selects the single optimal plan using a strict 6-key hierarchy:
 
@@ -232,7 +242,7 @@ When multiple safe payment candidates exist, the `PlanRanker` selects the single
 
 ---
 
-## 10. Repository Structure
+## 11. Repository Structure
 
 ```
 Financial-Decision-Agent/
@@ -270,7 +280,7 @@ Financial-Decision-Agent/
 
 ---
 
-## 11. Technology Stack
+## 12. Technology Stack
 
 * **Language**: Python 3.10+ / 3.13
 * **Data Processing**: `pandas`, `numpy`, `python-dateutil`
@@ -280,7 +290,7 @@ Financial-Decision-Agent/
 
 ---
 
-## 12. Installation & Setup
+## 13. Installation & Setup
 
 ### 1. Clone Repository
 ```bash
@@ -320,7 +330,7 @@ GEMINI_MODEL=gemini-3.6-flash
 
 ---
 
-## 13. How to Run
+## 14. How to Run
 
 ### Run Full Production Pipeline (250 Requests)
 ```bash
@@ -342,7 +352,7 @@ python code/evaluation/verify_output_csv.py
 
 ---
 
-## 14. How to Run Test Suite
+## 15. How to Run Test Suite
 
 Execute all 50 unit and integration tests:
 
@@ -365,7 +375,7 @@ OK
 
 ---
 
-## 15. Output Schema & Example
+## 16. Output Schema & Example
 
 The engine produces `output.csv` matching this exact 8-column specification:
 
@@ -394,7 +404,7 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ---
 
-## 16. Verification & Validation Results
+## 17. Verification & Validation Results
 
 * **Automated Unit Tests**: `50 / 50` passed (100%).
 * **Production Dataset Evaluation**: `250 / 250` requests processed.
@@ -405,19 +415,13 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ---
 
-## 17. Engineering Design Decisions
+## 18. Engineering Design Decisions
 
 1. **Separation of Concerns**: Kept LLM extraction completely isolated from numerical simulation. If Gemini encounters API rate limits or returns malformed text, the deterministic engine falls back to known structured ledger events safely.
 2. **Monotonic Binary Search**: Used binary search to solve for `amount_safe_to_pay` in $O(\log_2(\text{Amount}))$, evaluating 30 iterations to achieve sub-cent precision rather than linear probing.
 3. **Strict Debits-First Accounting**: In liquidity simulations, all intraday debits are processed before credits on the same calendar date, ensuring users do not temporarily overdraw accounts before payroll deposits clear.
 4. **Exact FX Dating**: Currency conversions enforce exact-day matching in `exchange_rates.csv` without speculative linear interpolation across missing dates.
 5. **Zero Invented Facts**: Missing data (such as image-backed payslips during API failure) is treated conservatively as unconfirmed rather than hallucinating arbitrary numerical credits.
-
----
-
-## 18. Challenge Origin
-
-This project was originally developed for the **HackerRank Orchestrate (September 2026) — "Buy or Wait?"** engineering challenge. It is maintained and published here as an open-source reference architecture for safety-constrained financial reasoning agents.
 
 ---
 
