@@ -139,7 +139,7 @@ The system executes an end-to-end deterministic pipeline with failure-safe AI ex
 2. **Event Ledger Classifier**: Categorizes historical events, scheduled transactions, non-cash records, and pending debits.
 3. **Gemini Fact Extractor**: Extracts structured updates (`ExtractedFact`) from messages and PNG receipts.
 4. **4-Tier Conflict Resolver**: Reconciles unstructured facts with ledger events using explicit precedence and provenance tracking.
-5. **90-Day Financial Forecaster**: Projects daily account balances over 90 days, applying anti-aliased recurring cadence and strict debits-before-credits daily ordering.
+5. **90-Day Financial Forecaster**: Projects daily account balances over 90 days, applying anti-aliased recurring cadence and credits-before-debits daily ordering.
 6. **Decision Engine**: Computes safe liquidity on `request_date` via binary search, scans for the earliest full safe date, and generates candidate plans across all viable payment strategies.
 7. **Candidate Safety Validator**: Simulates candidate cash flows against the 90-day timeline, discarding any candidate that violates `minimum_balance_to_keep` or exceeds deadlines.
 8. **6-Key Deterministic Ranker**: Orders eligible safe candidates using a strict multi-criteria hierarchy to pick the single best plan.

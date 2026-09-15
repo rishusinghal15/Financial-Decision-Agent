@@ -227,6 +227,53 @@ class TestPhase3(unittest.TestCase):
         trace = self.engine.evaluate_request(req, prof, reconciled, opts)
         self.assertIsInstance(trace, DecisionTrace)
 
+    def test_26_same_day_credit_applied_before_debit(self):
+        # Starting balance: 500, minimum balance to keep: 500.
+        # On same date (2025-01-05):
+        # - Confirmed credit: +1000 (e.g. salary received on payday)
+        # - Scheduled debit: -800 (e.g. bill or candidate payment)
+        # Under credits-before-debits ordering:
+        # 1. Credit is applied first: 500 + 1000 = 1500
+        # 2. Debit is applied next: 1500 - 800 = 700
+        # 3. Running balance stays above 500 throughout (min_obs = 500), so is_safe = True.
+        # (If debits were evaluated before credits, balance would dip to 500 - 800 = -300 < 500 -> unsafe).
+        same_day = date(2025, 1, 5)
+        timeline = [{
+            "date": same_day,
+            "amount": Decimal("1000"),
+            "direction": "credit",
+            "category": "salary",
+            "event_id": "sal_01",
+            "source_event_id": "sal_01",
+            "status": "scheduled",
+            "flexibility": "fixed",
+            "minimum_allowed_amount": None,
+            "from_csv": True,
+            "description": "Salary"
+        }]
+        candidate_payments = [(same_day, Decimal("800"))]
+
+        is_safe, min_obs = self.forecaster.simulate(
+            start_balance=Decimal("500"),
+            minimum_balance_to_keep=Decimal("500"),
+            timeline_events=timeline,
+            candidate_payments=candidate_payments
+        )
+        self.assertTrue(is_safe)
+        self.assertEqual(min_obs, Decimal("500"))
+
+        # Conversely, verify that minimum balance is still properly enforced:
+        # If the same-day debit exceeds credit + headroom (e.g. debit 1100):
+        # 500 + 1000 - 1100 = 400 < 500 -> unsafe, min_obs = 400.
+        is_safe_breach, min_obs_breach = self.forecaster.simulate(
+            start_balance=Decimal("500"),
+            minimum_balance_to_keep=Decimal("500"),
+            timeline_events=timeline,
+            candidate_payments=[(same_day, Decimal("1100"))]
+        )
+        self.assertFalse(is_safe_breach)
+        self.assertEqual(min_obs_breach, Decimal("400"))
+
 
 if __name__ == "__main__":
     unittest.main()
