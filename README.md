@@ -70,7 +70,7 @@ For every financial request, the engine answers seven critical questions:
 * **4-Tier Conflict Resolution & Event Reconciliation**: Reconciles contradicting ledger entries, pending authorizations, and AI-extracted amendments using strict provenance tracking and precedence hierarchies.
 * **Dated Currency Normalization**: Converts multi-currency transactions into the user's home currency using exact settlement-date exchange rates without speculative interpolation.
 * **90-Day Deterministic Cash-Flow Forecaster**: Reconstructs daily liquidity trajectories, modeling recurring payroll cycles, fixed living commitments, pending debit reservations, and essential spending.
-* **Conservative Liquidity Invariants**: Guarantees that available balance never breaches `minimum_balance_to_keep` at any point in the 90-day forecast horizon under a debits-first daily accounting rule.
+* **Conservative Liquidity Invariants**: Guarantees that available balance never breaches `minimum_balance_to_keep` at any point in the 90-day forecast horizon, with same-day confirmed credits applied before debits to accurately model payday clearing.
 * **Binary-Search Safe-Amount Engine**: Computes the exact monetary amount safe to commit on `request_date` with sub-cent precision.
 * **Forward-Scanning Earliest Full-Payment Engine**: Scans future dates to discover the earliest conservative day a full single payment is sustainable.
 * **Exhaustive Candidate Plan Exploration**: Generates and validates full-payment, installment, partial-payment, wait-based, and spending-reduction candidate plans.
@@ -116,7 +116,7 @@ For every financial request, the engine answers seven critical questions:
                                       ▼
                   ┌────────────────────────────────────────┐
                   │ 90-Day Deterministic Forecaster        │
-                  │ (Recurring Cycles, Debits-First Sim)   │
+                  │ (Recurring Cycles, Credits-First Sim)  │
                   └───────────────────┬────────────────────┘
                                       │
                                       ▼
@@ -174,7 +174,7 @@ The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
 3. **Pending Credits**: Excluded from available cash until officially settled (conservative baseline).
 4. **Recurring Income / Salaries**: Detected across historical settlement intervals ($\sim 30$ days) and projected forward.
 5. **Recurring Living Expenses**: Periodic groceries, utilities, and transport projected based on historical cadence.
-6. **Debits-First Accounting**: On any date $t$, scheduled debits are deducted before credits are recognized to ensure solvency during intraday transactions:
+6. **Same-Day Event Ordering (Credits Before Debits)**: For same-day events, confirmed/in-scope credits are applied before debits. This ordering ensures that an income arriving on the same day as an expense (such as a salary deposit on payday) is available before that day's debit is evaluated, according to the implemented accounting model:
    $$\text{Balance}(t) = \text{Balance}(t-1) + \sum \text{Credits}(t) - \sum \text{Debits}(t) - \text{CandidatePayment}(t)$$
    $$\forall t \in [t_0, t_0 + 90]: \quad \text{Balance}(t) \ge \text{minimum\_balance\_to\_keep}$$
 
@@ -419,7 +419,7 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 1. **Separation of Concerns**: Kept LLM extraction completely isolated from numerical simulation. If Gemini encounters API rate limits or returns malformed text, the deterministic engine falls back to known structured ledger events safely.
 2. **Monotonic Binary Search**: Used binary search to solve for `amount_safe_to_pay` in $O(\log_2(\text{Amount}))$, evaluating 30 iterations to achieve sub-cent precision rather than linear probing.
-3. **Strict Debits-First Accounting**: In liquidity simulations, all intraday debits are processed before credits on the same calendar date, ensuring users do not temporarily overdraw accounts before payroll deposits clear.
+3. **Same-Day Credit-First Accounting**: For same-day events, confirmed/in-scope credits are applied before debits in liquidity simulations. This ensures that an income arriving on the same day as an expense (such as a salary deposit on payday) is available before that day's debit is evaluated, according to the implemented accounting model.
 4. **Exact FX Dating**: Currency conversions enforce exact-day matching in `exchange_rates.csv` without speculative linear interpolation across missing dates.
 5. **Zero Invented Facts**: Missing data (such as image-backed payslips during API failure) is treated conservatively as unconfirmed rather than hallucinating arbitrary numerical credits.
 
