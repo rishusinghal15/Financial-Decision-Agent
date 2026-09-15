@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional, Dict, Any, List
 
 from models import Request, UserProfile, DecisionTrace, PlanCandidate
-from instrumentation import logger as global_logger, GeminiLogger
+from instrumentation import logger as global_logger, GeminiLogger, get_gemini_model
 
 try:
     from google import genai
@@ -33,11 +33,11 @@ class GeminiExplainer:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model_name: str = "gemini-2.5-flash",
+        model_name: Optional[str] = None,
         logger: Optional[GeminiLogger] = None
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-        self.model_name = model_name
+        self.model_name = get_gemini_model(model_name)
         self.logger = logger or global_logger
         self.client = None
         if _HAS_GENAI and self.api_key:

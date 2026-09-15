@@ -9,9 +9,27 @@ import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
+# Centralized Gemini Model Configuration
+DEFAULT_GEMINI_MODEL = "gemini-3.6-flash"
+
+
+def get_gemini_model(model_name: Optional[str] = None) -> str:
+    """
+    Centralized resolver for Gemini model configuration.
+    Precedence:
+    1. Explicit model_name passed to constructor/function.
+    2. GEMINI_MODEL environment variable.
+    3. Centralized DEFAULT_GEMINI_MODEL fallback ('gemini-3.6-flash').
+    """
+    if model_name:
+        return model_name
+    return os.environ.get("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+
+
 # Gemini pricing estimates (USD per 1M tokens) - standard Gemini Flash rates
-# gemini-2.5-flash / gemini-1.5-flash: ~$0.075 per 1M input tokens (<128k prompt), ~$0.30 per 1M output tokens
+# gemini-3.6-flash / gemini-2.5-flash / gemini-1.5-flash: ~$0.075 per 1M input tokens (<128k prompt), ~$0.30 per 1M output tokens
 PRICE_PER_1M_INPUT_TOKENS = {
+    "gemini-3.6-flash": 0.075,
     "gemini-2.5-flash": 0.075,
     "gemini-1.5-flash": 0.075,
     "gemini-1.5-pro": 1.25,
@@ -19,6 +37,7 @@ PRICE_PER_1M_INPUT_TOKENS = {
 }
 
 PRICE_PER_1M_OUTPUT_TOKENS = {
+    "gemini-3.6-flash": 0.30,
     "gemini-2.5-flash": 0.30,
     "gemini-1.5-flash": 0.30,
     "gemini-1.5-pro": 5.00,

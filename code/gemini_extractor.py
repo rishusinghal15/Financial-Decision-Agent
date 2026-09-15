@@ -11,7 +11,7 @@ import time
 from typing import List, Optional, Dict, Any
 
 from models import Message, ImageMapping, FinancialEvent, ExtractedFact
-from instrumentation import logger
+from instrumentation import logger, get_gemini_model
 
 try:
     from google import genai
@@ -43,7 +43,7 @@ class GeminiExtractor:
         provider: str = "Google Gemini"
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
-        self.model_name = model_name or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model_name = get_gemini_model(model_name)
         self.provider = provider
         self.client = None
 
