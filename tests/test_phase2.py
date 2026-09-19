@@ -30,9 +30,10 @@ class TestPhase2(unittest.TestCase):
         cls.dataset_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dataset"))
         cls.loader = DataLoader(cls.dataset_dir)
         cls.container = cls.loader.load_all()
+        cls.mock_logger = MagicMock()
 
     def test_1_valid_structured_message_extraction_schema(self):
-        extractor = GeminiExtractor(api_key="mock_key")
+        extractor = GeminiExtractor(api_key="mock_key", logger=self.mock_logger, run_type="evaluation")
         extractor.client = MagicMock()
         
         mock_response = MagicMock()
@@ -73,7 +74,7 @@ class TestPhase2(unittest.TestCase):
         self.assertEqual(f.source, "message_01")
 
     def test_2_invalid_gemini_response_rejected_safely(self):
-        extractor = GeminiExtractor(api_key="mock_key")
+        extractor = GeminiExtractor(api_key="mock_key", logger=self.mock_logger, run_type="evaluation")
         extractor.client = MagicMock()
         
         # Malformed / invalid json
@@ -86,7 +87,7 @@ class TestPhase2(unittest.TestCase):
         self.assertEqual(facts, [])
 
     def test_3_api_failure_does_not_crash_pipeline(self):
-        extractor = GeminiExtractor(api_key="mock_key")
+        extractor = GeminiExtractor(api_key="mock_key", logger=self.mock_logger, run_type="evaluation")
         extractor.client = MagicMock()
         extractor.client.models.generate_content.side_effect = RuntimeError("API connection timeout")
 
@@ -107,7 +108,7 @@ class TestPhase2(unittest.TestCase):
         self.assertFalse(r.is_amended)
 
     def test_5_image_mapping_correctly_identifies_associated_event(self):
-        extractor = GeminiExtractor(api_key="mock_key")
+        extractor = GeminiExtractor(api_key="mock_key", logger=self.mock_logger, run_type="evaluation")
         extractor.client = MagicMock()
         
         mock_response = MagicMock()

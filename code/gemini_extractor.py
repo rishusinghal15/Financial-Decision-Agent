@@ -11,7 +11,7 @@ import time
 from typing import List, Optional, Dict, Any
 
 from models import Message, ImageMapping, FinancialEvent, ExtractedFact
-from instrumentation import logger, get_gemini_model
+from instrumentation import logger as global_logger, GeminiLogger, get_gemini_model, resolve_run_type
 
 try:
     from google import genai
@@ -40,11 +40,15 @@ class GeminiExtractor:
         self,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        provider: str = "Google Gemini"
+        provider: str = "Google Gemini",
+        logger: Optional[GeminiLogger] = None,
+        run_type: Optional[str] = None
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         self.model_name = get_gemini_model(model_name)
         self.provider = provider
+        self.logger = logger or global_logger
+        self.run_type = resolve_run_type(run_type)
         self.client = None
 
         if self.api_key and genai is not None:
@@ -143,31 +147,39 @@ Return ONLY a valid JSON array of objects with these exact keys:
 
             facts = self._validate_and_build_facts(parsed_data, default_source=message.message_id)
 
-            logger.log_call(
-                purpose="message_fact_extraction",
-                model_name=self.model_name,
-                provider=self.provider,
-                request_id=req_id,
-                input_tokens=in_tokens,
-                output_tokens=out_tokens,
-                success=True,
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="message_fact_extraction",
+                    model_name=self.model_name,
+                    provider=self.provider,
+                    request_id=req_id,
+                    input_tokens=in_tokens,
+                    output_tokens=out_tokens,
+                    success=True,
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExtractor Warning] Telemetry logging failed: {log_err}")
             return facts
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000.0
-            logger.log_call(
-                purpose="message_fact_extraction",
-                model_name=self.model_name,
-                provider=self.provider,
-                request_id=req_id,
-                input_tokens=0,
-                output_tokens=0,
-                success=False,
-                error_msg=str(e),
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="message_fact_extraction",
+                    model_name=self.model_name,
+                    provider=self.provider,
+                    request_id=req_id,
+                    input_tokens=0,
+                    output_tokens=0,
+                    success=False,
+                    error_msg=str(e),
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExtractor Warning] Telemetry logging failed: {log_err}")
             return []
 
     def extract_from_image(
@@ -259,31 +271,39 @@ Return ONLY a valid JSON array with exactly one object:
                 default_event_id=image_mapping.related_event_id
             )
 
-            logger.log_call(
-                purpose="image_fact_extraction",
-                model_name=self.model_name,
-                provider=self.provider,
-                request_id=req_id,
-                input_tokens=in_tokens,
-                output_tokens=out_tokens,
-                success=True,
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="image_fact_extraction",
+                    model_name=self.model_name,
+                    provider=self.provider,
+                    request_id=req_id,
+                    input_tokens=in_tokens,
+                    output_tokens=out_tokens,
+                    success=True,
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExtractor Warning] Telemetry logging failed: {log_err}")
             return facts
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000.0
-            logger.log_call(
-                purpose="image_fact_extraction",
-                model_name=self.model_name,
-                provider=self.provider,
-                request_id=req_id,
-                input_tokens=0,
-                output_tokens=0,
-                success=False,
-                error_msg=str(e),
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="image_fact_extraction",
+                    model_name=self.model_name,
+                    provider=self.provider,
+                    request_id=req_id,
+                    input_tokens=0,
+                    output_tokens=0,
+                    success=False,
+                    error_msg=str(e),
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExtractor Warning] Telemetry logging failed: {log_err}")
             return []
 
     def _validate_and_build_facts(
