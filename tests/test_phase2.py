@@ -18,8 +18,12 @@ from models import (
     ImageMapping,
     UserProfile,
     ReconciledEvent,
+    Request,
+    DecisionTrace,
+    PlanCandidate,
 )
 from gemini_extractor import GeminiExtractor
+from gemini_explainer import GeminiExplainer
 from conflict_resolver import ConflictResolver
 from data_loader import DataLoader
 
@@ -275,6 +279,64 @@ class TestPhase2(unittest.TestCase):
         # Verification that fact values remain raw strings until parsed and no balance calculation is done
         fact = ExtractedFact("ev_1", "amend", "amount", "100.50", "USD", "2025-01-01", "src")
         self.assertIsInstance(fact.value, str)
+
+    def test_13_explainer_operates_strictly_on_precomputed_decision_trace(self):
+        """
+        Verify that the Gemini explanation layer operates strictly downstream on pre-computed
+        DecisionTrace data, performing zero independent arithmetic, balance forecasting, or ranking.
+        """
+        req = Request(
+            request_id="req_test_13",
+            user_id="user_test_13",
+            request_date=date(2025, 1, 1),
+            request_type="purchase",
+            requested_amount=Decimal("1500"),
+            desired_completion_date=date(2025, 1, 15),
+            allows_partial_payment=True,
+            request_text="Can I afford this laptop?"
+        )
+        profile = UserProfile(
+            user_id="user_test_13",
+            home_currency="USD",
+            current_available_balance=Decimal("3000"),
+            minimum_balance_to_keep=Decimal("1000"),
+            financial_priorities=[],
+            expense_categories_to_protect=[],
+            expense_categories_user_is_willing_to_reduce=[],
+            expense_categories_user_is_willing_to_stop=[],
+            payment_methods_user_will_consider=["full_payment"]
+        )
+        trace = DecisionTrace(
+            request_id="req_test_13",
+            amount_safe_to_pay=Decimal("1500"),
+            affordability_status="affordable_now",
+            recommended_payment_method="full_payment",
+            payment_plan="2025-01-01:1500",
+            earliest_date_for_full_payment=date(2025, 1, 1),
+            spending_changes_needed="none"
+        )
+
+        explainer = GeminiExplainer(api_key=None, logger=self.mock_logger)
+
+        # 1. Prompt construction must embed the exact precomputed decision trace facts
+        prompt = explainer._build_prompt(req, profile, trace, None)
+        self.assertIn("USD 1,500", prompt)
+        self.assertIn("affordable_now", prompt)
+        self.assertIn("full_payment", prompt)
+        self.assertIn("2025-01-01:1500", prompt)
+        self.assertIn("USD 1,000", prompt)
+        self.assertIn("already-computed financial decision", prompt)
+
+        # 2. Deterministic fallback explanation must be grounded in trace facts without independent arithmetic
+        explanation = explainer.generate_fallback_explanation(req, profile, trace, None)
+        self.assertIn("USD 1,500", explanation)
+        self.assertIn("USD 1,000", explanation)
+        self.assertTrue(len(explanation) > 10)
+
+        # 3. Explainer component contains no arithmetic, forecasting, or ranking algorithms
+        self.assertFalse(hasattr(explainer, "simulate"))
+        self.assertFalse(hasattr(explainer, "forecast"))
+        self.assertFalse(hasattr(explainer, "rank"))
 
 
 if __name__ == "__main__":

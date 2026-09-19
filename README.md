@@ -163,6 +163,48 @@ Financial software requires 100% auditability, zero arithmetic hallucinations, a
 └──────────────────────────────────────┘     └──────────────────────────────────────┘
 ```
 
+### Why AI Is Separated From Financial Decision Logic
+
+This architecture is not an "AI versus rules" compromise; it is a deliberate, mathematically sound division of responsibilities designed for high-stakes financial operations:
+
+```
+Unstructured Financial Information (Messages, Receipts, Images)
+                        │
+                        ▼
+            [ AI Fact Extraction ] (Gemini 3.6 Flash)
+                        │
+                        ▼
+                Structured Facts (ExtractedFact schema)
+                        │
+                        ▼
+        [ Deterministic Financial Engine ] (Python)
+          - FX normalization & event reconciliation
+          - 90-day daily cash flow simulation
+          - Monotonic binary search (amount_safe_to_pay)
+          - Forward scan (earliest_date_for_full_payment)
+          - Hard safety gating (minimum balance invariant)
+          - 6-key lexicographical plan ranking
+                        │
+                        ▼
+                Validated Decision
+                        │
+                        ▼
+             [ DecisionTrace State ]
+                        │
+                        ▼
+           [ AI Grounded Explanation ] (Gemini Explainer)
+                        │
+                        ▼
+                Output Decision Row
+```
+
+1. **Deterministic Reproducibility**: Financial decisions must produce identical outputs when given identical inputs. Probabilistic model sampling can vary across runs; deterministic Python ensures that 100% of arithmetic, ledger updates, and plan selections are fully reproducible.
+2. **Auditable Safety Constraints**: Regulatory compliance and financial prudence require proving that account balances never drop below `minimum_balance_to_keep`. Deterministic simulation calculates daily cash balances to the exact cent, providing verifiable mathematical guarantees.
+3. **Resilience to LLM Failure & Quota Exhaustion**: LLM APIs are subject to network timeouts, latency spikes, and quota exhaustion (e.g. HTTP 429). By isolating Gemini to fact extraction and natural-language explanation, the system gracefully falls back to structured baselines and deterministic explanation templates without compromising financial safety.
+4. **Targeted Value of Multimodal AI**: Large multimodal models excel at interpreting ambiguous, unstructured data—such as deciphering handwritten dates on receipts, conversational salary amendments, or invoice adjustments. Feeding extracted facts into structured schemas (`ExtractedFact`) extracts maximum value from AI without exposing the balance ledger to arithmetic hallucinations.
+5. **Stable Safety Boundary**: The deterministic engine acts as a hard safety boundary that cannot be bypassed by prompt injections or model drift. If a user message attempts to instruct the model to "ignore my minimum balance", the LLM cannot override the Python safety gate.
+6. **Explanation Grounding via DecisionTrace**: The Gemini explanation generator operates strictly downstream of the financial decision, receiving only the pre-computed `DecisionTrace`. It translates the mathematical outcome into concise human language and cannot alter predictions or make unsupported financial claims.
+
 ---
 
 ## 8. Financial Forecasting & Decision Model

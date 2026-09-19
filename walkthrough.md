@@ -191,6 +191,31 @@ The core design principle of the architecture is a strict boundary between AI-dr
 - **Zero Candidate Ranking**: Plan ranking is governed strictly by the deterministic 6-key tuple.
 - **Zero Safety Validation**: Safety is verified by simulating daily balances down to the exact cent.
 
+### Why AI Is Separated From Financial Decision Logic
+
+This architecture is not an "AI versus rules" compromise; it is a deliberate, mathematically sound division of responsibilities:
+
+```
+AI extraction
+    ↓
+structured facts (ExtractedFact)
+    ↓
+deterministic financial engine (Forecaster, DecisionEngine, Ranker)
+    ↓
+validated decision
+    ↓
+DecisionTrace
+    ↓
+AI explanation (Gemini Explainer)
+```
+
+1. **Deterministic Reproducibility**: Financial decisions must be 100% reproducible across independent runs. Probabilistic LLM generations cannot be relied upon for mission-critical calculations.
+2. **Auditable Safety Constraints**: Every payment plan is simulated down to the cent against the `minimum_balance_to_keep` invariant across 90 days.
+3. **Resilience to Failure & Quota Limits**: Isolating the LLM ensures that even if external APIs return HTTP 429 or network timeouts, the core financial decision pipeline continues operating deterministically with 100% availability.
+4. **Multimodal Information Value**: Multimodal AI provides unique capability in parsing unstructured receipts and messages into structured updates without exposing the balance ledger to LLM hallucinations.
+5. **Prompt Injection Defense**: By restricting LLMs to structured data extraction and downstream natural language explanation, user-crafted prompts cannot trick the financial engine into ignoring safety constraints.
+6. **DecisionTrace Explanation Grounding**: Explanations are strictly generated from the pre-computed `DecisionTrace`, ensuring complete grounding in validated financial facts.
+
 ---
 
 ## 7. Gemini Extraction & Failure Safety
