@@ -494,7 +494,56 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ---
 
-## 18. Engineering Design Decisions
+## 18. AI-Assisted Development
+
+### Development-Time Tools vs. Runtime System Components
+
+This project was developed through human-directed engineering assisted by AI tooling. A strict architectural boundary separates development-time productivity tools from production runtime components:
+
+```
+[ Development-Time AI Assistance ] (ChatGPT: Architecture Decomposition & Review)
+                    │
+                    ▼
+[ Human Engineering Oversight ] (Problem Invariants, Safety Bounds & Rules)
+                    │
+                    ▼
+[ Agentic Development Environment ] (Antigravity: Code Editing, Testing, Git)
+                    │
+                    ▼
+===================== RUNTIME PRODUCTION PIPELINE =====================
+                    │
+                    ├─► [ Google Gemini API (Runtime AI Component) ]
+                    │     - Multimodal message & visual image fact extraction
+                    │     - Downstream grounded decision explanation
+                    │
+                    └─► [ Deterministic Python Engine (Runtime Financial Core) ]
+                          - FX normalization & event reconciliation
+                          - 90-day cash-flow simulation
+                          - Minimum balance safety invariant validation
+                          - Monotonic binary search & forward scanning
+                          - Candidate generation & 6-key deterministic ranking
+                          - Output contract validation
+```
+
+### Exact Tool Roles & Boundaries
+
+| Component | Nature | Role & Responsibilities | Boundary Invariant |
+|---|:---:|---|---|
+| **ChatGPT** | Development-Time | Assisted human engineers with system decomposition, implementation planning, reasoning through edge cases, evaluation strategies, and technical documentation review. | **Zero Runtime Execution**: Never executed code or made runtime financial calculations. |
+| **Antigravity** | Development-Time | Served as the agentic coding environment and harness for applying workspace edits, running test suites, executing evaluation commands, and managing Git operations. | **Development Environment Only**: Never participated in runtime financial decision-making. |
+| **Google Gemini API** | Runtime Application | Extracts strongly-typed `ExtractedFact` records from unstructured messages and visual receipts; synthesizes concise, grounded explanations from pre-computed `DecisionTrace` facts. | **Zero Arithmetic / Decisions**: Strictly isolated behind fallback try/except blocks; never computes balances, ranks plans, or alters predictions. |
+| **Deterministic Python** | Runtime Application | Executes 100% of the mathematical calculations, dated FX conversions, 90-day ledger simulations, liquidity constraint checks, candidate generation, hard safety gating, and 6-key ranking. | **Autonomous & Auditable Core**: Operates deterministically with 100% mathematical reproducibility and zero hallucinations. |
+
+### Human Engineering Oversight
+
+The entire system architecture, mathematical constraints, safety thresholds, and validation contracts were **human-directed**. AI tools served as specialized engineering assistants:
+- Human engineers defined the core safety guarantee ($\text{Balance}(t) \ge \text{minimum\_balance\_to\_keep}$), the credits-first intraday accounting model, the candidate ranking hierarchy, and contract validation invariants.
+- Neither ChatGPT nor Antigravity made autonomous financial decisions or independently designed the system without human guidance.
+- The runtime financial decision engine remains 100% deterministic, providing full auditability and eliminating LLM arithmetic hallucinations.
+
+---
+
+## 19. Engineering Design Decisions
 
 1. **Separation of Concerns**: Kept LLM extraction completely isolated from numerical simulation. If Gemini encounters API rate limits or returns malformed text, the deterministic engine falls back to known structured ledger events safely.
 2. **Monotonic Binary Search**: Used binary search to solve for `amount_safe_to_pay` in $O(\log_2(\text{Amount}))$, evaluating 30 iterations to achieve sub-cent precision rather than linear probing.
@@ -504,7 +553,7 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ---
 
-## 19. Limitations & Future Roadmap
+## 20. Limitations & Future Roadmap
 
 ### Current Limitations
 * **Batch Execution**: Operates on structured CSV and local image files rather than live banking APIs.
@@ -519,6 +568,6 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ---
 
-## 20. License
+## 21. License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for details.

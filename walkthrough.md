@@ -558,12 +558,68 @@ code.zip
 | Component | Target / Specification | Current Verified Status |
 |---|---|:---:|
 | **Core Architecture** | Multimodal fact extraction + Deterministic Python financial engine | **COMPLETE & LOCKED** |
-| **Unit Test Suite** | 50 tests covering Phases 1–4 | **50 / 50 PASSING (100%)** |
+| **Unit Test Suite** | 50+ tests covering Phases 1–4 | **66 / 66 PASSING (100%)** |
 | **Output File** | `output.csv` (250 rows, 8 columns, 0 validator errors) | **VALIDATED & READY** |
 | **Dataset Integrity** | `dataset/` files untouched | **100% PRISTINE** |
 | **Telemetry & Report** | `code/evaluation/usage_report.md` | **VERIFIED & ACCURATE** |
 | **Submission Archive** | `code.zip` (26 manifest files, 0 excluded artifacts) | **PACKAGED (74.18 KB)** |
 | **Evaluation Readiness** | Deterministic reproducibility with failure-safe AI fallback | **READY FOR SUBMISSION** |
+
+---
+
+## 25. AI-Assisted Development & Tool Architecture
+
+### Development-Time Tools vs. Runtime System Components
+
+The development of this solution utilized AI engineering tools under strict human guidance. The following clear boundaries separate development-time assistance from runtime application components:
+
+```
+[ ChatGPT: Architecture & Review ] ──► [ Human Direction ] ──► [ Antigravity: Editing & Testing ]
+                                                                       │
+                                                                       ▼
+                                                          [ Repository Implementation ]
+                                                                       │
+                         ┌─────────────────────────────────────────────┴─────────────────────────────────────────────┐
+                         ▼                                                                                           ▼
+            [ Gemini API (Runtime AI) ]                                                                 [ Python Engine (Runtime Core) ]
+            - Multimodal message extraction                                                             - FX conversion & reconciliation
+            - Multimodal image extraction                                                               - 90-day cash flow simulation
+            - Grounded DecisionTrace explanation                                                        - Monotonic binary search
+                                                                                                        - Hard safety gating
+                                                                                                        - 6-key deterministic ranking
+```
+
+### Exact Tool Roles
+
+1. **ChatGPT (Development-Time Assistant)**:
+   - System decomposition and architectural design planning.
+   - Reasoning through complex financial edge cases (e.g. liquidity breaches, dated FX conversions).
+   - Code review, debugging strategies, and forensic evaluation planning.
+   - Technical documentation drafting and refinement.
+   - *Boundary*: Zero runtime execution; never executed code or made runtime financial calculations.
+2. **Antigravity (Development Environment & Agent)**:
+   - Agentic coding environment used to implement workspace code changes and tests.
+   - Managing and editing local files across the codebase.
+   - Executing test suites (`pytest`), evaluation scripts, and output validators.
+   - Orchestrating Git version control operations directly on the repository.
+   - *Boundary*: Development environment harness only; never participated in runtime financial decision-making.
+3. **Google Gemini API (Runtime Multimodal Component)**:
+   - Structured information extraction from natural-language messages (`ExtractedFact` schema).
+   - Structured visual fact extraction from receipt/invoice PNG images.
+   - Synthesizing concise, grounded natural-language explanations strictly from pre-computed `DecisionTrace` facts.
+   - *Boundary*: Strictly bounded behind non-fatal fallback handlers; performs zero arithmetic, never projects balances, never decides affordability, and never alters financial recommendations.
+4. **Deterministic Python (Runtime Core Engine)**:
+   - Reconstructing the 90-day daily cash flow ledger from structured financial profiles and events.
+   - Enforcing the non-negotiable liquidity invariant: $\text{Balance}(t) \ge \text{minimum\_balance\_to\_keep}$.
+   - Monotonic binary search for `amount_safe_to_pay` and chronological forward scan for `earliest_date_for_full_payment`.
+   - Generating legal candidate strategies and ranking safe plans using the 6-key lexicographical comparator.
+   - Formatting and validating final predictions against the submission contract.
+   - *Boundary*: 100% deterministic, auditable, and mathematically reproducible core.
+
+### Human Governance & Oversight
+All architectural boundaries, mathematical invariants ($\text{Balance}_t \ge \text{minimum\_balance\_to\_keep}$), ranking priorities, and contract validation constraints were **human-directed**. AI tools functioned as engineering assistants rather than autonomous decision-makers.
+
+---
 
 ### Mandatory Challenge Submission Link:
 https://www.hackerrank.com/contests/hackerrank-orchestrate-september26/challenges/buy-or-wait/submission
