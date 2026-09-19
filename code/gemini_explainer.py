@@ -10,7 +10,7 @@ from decimal import Decimal
 from typing import Optional, Dict, Any, List
 
 from models import Request, UserProfile, DecisionTrace, PlanCandidate
-from instrumentation import logger as global_logger, GeminiLogger, get_gemini_model
+from instrumentation import logger as global_logger, GeminiLogger, get_gemini_model, resolve_run_type
 
 try:
     from google import genai
@@ -34,11 +34,13 @@ class GeminiExplainer:
         self,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        logger: Optional[GeminiLogger] = None
+        logger: Optional[GeminiLogger] = None,
+        run_type: Optional[str] = None
     ):
         self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
         self.model_name = get_gemini_model(model_name)
         self.logger = logger or global_logger
+        self.run_type = resolve_run_type(run_type)
         self.client = None
         if _HAS_GENAI and self.api_key:
             try:
@@ -87,15 +89,19 @@ class GeminiExplainer:
                 in_tok = getattr(response.usage_metadata, "prompt_token_count", 0) or 0
                 out_tok = getattr(response.usage_metadata, "candidates_token_count", 0) or 0
 
-            self.logger.log_call(
-                purpose="explanation_generation",
-                model_name=self.model_name,
-                request_id=request.request_id,
-                input_tokens=in_tok,
-                output_tokens=out_tok,
-                success=bool(text),
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="explanation_generation",
+                    model_name=self.model_name,
+                    request_id=request.request_id,
+                    input_tokens=in_tok,
+                    output_tokens=out_tok,
+                    success=bool(text),
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExplainer Warning] Telemetry logging failed: {log_err}")
 
             if not text:
                 return fallback_text
@@ -108,16 +114,20 @@ class GeminiExplainer:
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            self.logger.log_call(
-                purpose="explanation_generation",
-                model_name=self.model_name,
-                request_id=request.request_id,
-                input_tokens=0,
-                output_tokens=0,
-                success=False,
-                error_msg=str(e),
-                duration_ms=duration_ms
-            )
+            try:
+                self.logger.log_call(
+                    purpose="explanation_generation",
+                    model_name=self.model_name,
+                    request_id=request.request_id,
+                    input_tokens=0,
+                    output_tokens=0,
+                    success=False,
+                    error_msg=str(e),
+                    duration_ms=duration_ms,
+                    run_type=self.run_type
+                )
+            except Exception as log_err:
+                print(f"[GeminiExplainer Warning] Telemetry logging failed: {log_err}")
             return fallback_text
 
     def _build_prompt(

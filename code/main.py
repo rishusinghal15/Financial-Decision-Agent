@@ -38,14 +38,15 @@ from ranker import PlanRanker
 from decision_engine import DecisionEngine
 from gemini_explainer import GeminiExplainer
 from validator import OutputValidator, ValidationError
-from instrumentation import logger as global_logger
+from instrumentation import logger as global_logger, resolve_run_type
 
 
 def run_pipeline(
     dataset_dir: Optional[str] = None,
     output_path: Optional[str] = None,
     is_sample_run: bool = False,
-    use_gemini: bool = True
+    use_gemini: bool = True,
+    run_type: Optional[str] = None
 ) -> pd.DataFrame:
     """
     Executes the complete Buy or Wait pipeline.
@@ -77,13 +78,14 @@ def run_pipeline(
     print(f"Loaded {len(target_requests)} evaluation requests.")
 
     # 2. Initialize components
-    print("\n[Step 2/8] Initializing pipeline components...")
-    extractor = GeminiExtractor() if use_gemini else None
+    pipeline_run_type = resolve_run_type(run_type or ("evaluation" if is_sample_run else "production"))
+    print(f"\n[Step 2/8] Initializing pipeline components (run_type: {pipeline_run_type})...")
+    extractor = GeminiExtractor(run_type=pipeline_run_type) if use_gemini else None
     resolver = ConflictResolver()
     forecaster = FinancialForecaster(container.rate_table)
     ranker = PlanRanker()
     engine = DecisionEngine(forecaster, ranker)
-    explainer = GeminiExplainer()
+    explainer = GeminiExplainer(run_type=pipeline_run_type)
     validator = OutputValidator()
 
     output_rows: List[Dict[str, Any]] = []

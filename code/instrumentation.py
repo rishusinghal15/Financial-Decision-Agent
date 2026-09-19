@@ -5,6 +5,7 @@ Logs all LLM calls to a persistent JSON log file and generates usage_report.md.
 
 import os
 import json
+import re
 import time
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
@@ -24,6 +25,37 @@ def get_gemini_model(model_name: Optional[str] = None) -> str:
     if model_name:
         return model_name
     return os.environ.get("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL
+
+
+# Controlled execution contexts for telemetry provenance
+VALID_RUN_TYPES = {"production", "evaluation", "smoke_test"}
+DEFAULT_RUN_TYPE = "production"
+
+
+def resolve_run_type(run_type: Optional[str] = None) -> str:
+    """
+    Resolves the execution context run_type.
+    Precedence:
+    1. Explicit run_type passed to caller/logger.
+    2. GEMINI_RUN_TYPE environment variable.
+    3. Centralized DEFAULT_RUN_TYPE fallback ('production').
+    """
+    if run_type and run_type in VALID_RUN_TYPES:
+        return run_type
+    env_run_type = os.environ.get("GEMINI_RUN_TYPE")
+    if env_run_type and env_run_type in VALID_RUN_TYPES:
+        return env_run_type
+    return DEFAULT_RUN_TYPE
+
+
+def _redact_secrets(text: Optional[str]) -> Optional[str]:
+    """Redact potential API keys or sensitive tokens from error messages or strings."""
+    if not text:
+        return text
+    redacted = re.sub(r"AIzaSy[A-Za-z0-9_-]{33}", "[REDACTED_API_KEY]", text)
+    redacted = re.sub(r"(api[_-]?key[\"']?\s*[:=]\s*[\"']?)([A-Za-z0-9_\-\.]{8,})([\"']?)", r"\1[REDACTED_API_KEY]\3", redacted, flags=re.IGNORECASE)
+    redacted = re.sub(r"(key=)([A-Za-z0-9_\-\.]{8,})", r"\1[REDACTED_API_KEY]", redacted, flags=re.IGNORECASE)
+    return redacted
 
 
 # Gemini pricing estimates (USD per 1M tokens) - standard Gemini Flash rates
@@ -56,12 +88,16 @@ def _calculate_cost(model_name: str, input_tokens: int, output_tokens: int) -> f
 
 
 class GeminiLogger:
-    def __init__(self, log_path: str = LOG_FILE_PATH):
+    def __init__(self, log_path: str = LOG_FILE_PATH, default_run_type: str = DEFAULT_RUN_TYPE):
         self.log_path = log_path
-        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
-        if not os.path.exists(self.log_path):
-            with open(self.log_path, "w", encoding="utf-8") as f:
-                json.dump([], f)
+        self.default_run_type = resolve_run_type(default_run_type)
+        try:
+            os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+            if not os.path.exists(self.log_path):
+                with open(self.log_path, "w", encoding="utf-8") as f:
+                    json.dump([], f)
+        except Exception as e:
+            print(f"[GeminiLogger Warning] Init failed to ensure log file: {e}")
 
     def log_call(
         self,
@@ -73,43 +109,65 @@ class GeminiLogger:
         output_tokens: int = 0,
         success: bool = True,
         error_msg: Optional[str] = None,
-        duration_ms: float = 0.0
+        duration_ms: float = 0.0,
+        run_type: Optional[str] = None
     ) -> Dict[str, Any]:
-        cost = _calculate_cost(model_name, input_tokens, output_tokens)
-        record = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "request_id": request_id or "N/A",
-            "purpose": purpose,
-            "model_name": model_name,
-            "provider": provider,
-            "input_tokens": int(input_tokens),
-            "output_tokens": int(output_tokens),
-            "total_tokens": int(input_tokens + output_tokens),
-            "estimated_cost_usd": cost,
-            "success": success,
-            "duration_ms": round(duration_ms, 2),
-            "error": error_msg if not success else None
-        }
-
-        # Read existing records, append, and atomic write
+        actual_run_type = resolve_run_type(run_type or self.default_run_type)
+        cleaned_error = _redact_secrets(error_msg) if not success else None
         try:
-            records = []
-            if os.path.exists(self.log_path):
-                try:
-                    with open(self.log_path, "r", encoding="utf-8") as f:
-                        records = json.load(f)
-                        if not isinstance(records, list):
-                            records = []
-                except Exception:
-                    records = []
+            cost = _calculate_cost(model_name, input_tokens, output_tokens)
+            record = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "request_id": request_id or "N/A",
+                "purpose": purpose,
+                "run_type": actual_run_type,
+                "model_name": model_name,
+                "provider": provider,
+                "input_tokens": int(input_tokens),
+                "output_tokens": int(output_tokens),
+                "total_tokens": int(input_tokens + output_tokens),
+                "estimated_cost_usd": cost,
+                "success": success,
+                "duration_ms": round(duration_ms, 2),
+                "error": cleaned_error
+            }
 
-            records.append(record)
-            with open(self.log_path, "w", encoding="utf-8") as f:
-                json.dump(records, f, indent=2)
+            # Read existing records, append, and atomic write
+            try:
+                records = []
+                if os.path.exists(self.log_path):
+                    try:
+                        with open(self.log_path, "r", encoding="utf-8") as f:
+                            records = json.load(f)
+                            if not isinstance(records, list):
+                                records = []
+                    except Exception:
+                        records = []
+
+                records.append(record)
+                with open(self.log_path, "w", encoding="utf-8") as f:
+                    json.dump(records, f, indent=2)
+            except Exception as e:
+                print(f"[GeminiLogger Warning] Failed to save call log: {e}")
+
+            return record
         except Exception as e:
-            print(f"[GeminiLogger Warning] Failed to save call log: {e}")
-
-        return record
+            print(f"[GeminiLogger Warning] Unexpected error in log_call: {e}")
+            return {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "request_id": request_id or "N/A",
+                "purpose": purpose,
+                "run_type": actual_run_type,
+                "model_name": model_name,
+                "provider": provider,
+                "input_tokens": int(input_tokens),
+                "output_tokens": int(output_tokens),
+                "total_tokens": int(input_tokens + output_tokens),
+                "estimated_cost_usd": 0.0,
+                "success": success,
+                "duration_ms": round(duration_ms, 2),
+                "error": cleaned_error
+            }
 
     def clear_logs(self):
         with open(self.log_path, "w", encoding="utf-8") as f:
