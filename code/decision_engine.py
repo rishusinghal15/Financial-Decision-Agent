@@ -95,10 +95,13 @@ class DecisionEngine:
             reconciled_events=reconciled_events
         )
 
-        # 5. Filter safe and eligible candidates
+        # 5. Filter safe and eligible candidates (Hard Safety Gate)
+        # Safety validation is a hard constraint: any candidate that breaches minimum_balance_to_keep
+        # or violates user preferences is strictly rejected here. Unsafe candidates never proceed to ranking.
         safe_eligible_candidates = [c for c in candidates if c.is_safe and c.rejection_reason is None]
 
         # 6. Rank safe eligible candidates using the 6-key ranker
+        # Ranking operates exclusively on candidates that have already been validated as safe.
         winning_candidate = self.ranker.select_best_candidate(safe_eligible_candidates)
 
         # 7. Formulate final status and output representations

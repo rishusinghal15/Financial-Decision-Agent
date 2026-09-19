@@ -374,18 +374,24 @@ When standard payments are unsafe, the engine evaluates targeted reductions to n
 
 ---
 
-## 16. Deterministic Ranking
+## 16. Deterministic Ranking & Hard Safety Gate
+ 
+### Architectural Invariant: Safety Validation Precedes Ranking
+The decision engine maintains a strict two-stage separation between financial safety and preference optimization:
+1. **Safety Gate (Hard Invariant)**: Every candidate plan is projected through `simulate()`. If balance drops below `minimum_balance_to_keep` on any day or exceeds `max_installment_months`, the plan is rejected (`is_safe=False`) and excluded from `safe_eligible_candidates`.
+2. **Preference Optimization (Deterministic Ranker)**: Ranking evaluates **only** plans that have cleared the safety gate. An unsafe plan cannot win, regardless of how attractive its ranking metrics are.
 
-When multiple safe candidate plans exist, the `PlanRanker` selects the winning strategy using a strict **6-key deterministic tuple**:
+### The 6-Key Lexicographical Hierarchy
+Among safe eligible candidate plans, `PlanRanker` selects the winning strategy using a strict **6-key deterministic tuple**:
 
 ```python
 sort_key = (
-    0 if candidate.completes_by_deadline else 1,  # 1. Deadline satisfaction
-    len(candidate.spending_changes),             # 2. Minimum expense disruption
-    candidate.total_cost,                        # 3. Minimum total financial cost
+    0 if candidate.completes_by_deadline else 1,  # 1. Deadline satisfaction (Primary feasibility objective among safe plans)
+    len(candidate.spending_changes),             # 2. Minimum expense disruption (0 changes before 1, 2, 3)
+    candidate.total_cost,                        # 3. Minimum total financial cost (penalizes financing/interest)
     candidate.first_payment_date,                # 4. Earlier execution date
-    len(candidate.payments),                     # 5. Fewer payment transactions
-    candidate.payment_option_id or ""            # 6. Deterministic tie-breaker
+    len(candidate.payments),                     # 5. Fewer payment transactions (simpler structures first)
+    candidate.payment_option_id or ""            # 6. Deterministic tie-breaker (lexicographical option ID)
 )
 ```
 

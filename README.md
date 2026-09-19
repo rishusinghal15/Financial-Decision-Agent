@@ -239,14 +239,43 @@ The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
 
 ## 10. Deterministic Plan Ranker (6-Key Lexicographical Ordering)
 
-When multiple safe payment candidates exist, the `PlanRanker` selects the single optimal plan using a strict 6-key hierarchy:
+### Two-Stage Architectural Separation: Safety Gate vs. Candidate Ranking
 
-1. **Deadline Compliance** (`completes_by_deadline == True` preferred).
-2. **Spending Changes Avoided** ($\text{len}(\text{spending\_changes}) = 0$ preferred).
-3. **Total Cost Minimized** ($\text{TotalPayableAmount}$ including financing fees).
-4. **Earliest Execution Date** (Plans starting earlier preferred).
-5. **Fewer Payment Installments** (Single payment preferred over multi-stage installments).
-6. **Stable Tie-Breaking** (Option ID ordering).
+The financial decision engine enforces a strict two-stage separation between financial safety and plan preference:
+
+```
+Candidate Generation (Full, Partial, Installments, Wait, Spending Changes)
+        │
+        ▼
+[ Hard Safety Gate ] (90-day cash flow simulation against minimum_balance_to_keep)
+        │
+        ├── Unsafe / Ineligible Candidates ──► REJECTED (Recorded in DecisionTrace)
+        │
+        ▼
+[ Safe & Eligible Candidates Only ]
+        │
+        ▼
+[ 6-Key Deterministic Ranker ] (Lexicographical optimization)
+        │
+        ▼
+Winning Recommended Plan
+```
+
+1. **Safety Gate (Hard Invariant)**:
+   Safety validation is evaluated **prior to ranking**. Every candidate payment plan is simulated through `FinancialForecaster.simulate()`. If the running cash balance drops below `minimum_balance_to_keep` on any day $t \in [t_0, t_0 + 90]$, or if the candidate violates user constraints (e.g. `max_installment_months`), it is **strictly rejected**. Unsafe candidates never proceed to the ranker.
+2. **Selection (Deterministic Ranking Among Safe Candidates)**:
+   Ranking operates **exclusively** on candidates that have already been validated as safe. `completes_by_deadline` is a **feasibility preference among safe candidates**, NOT a safety gate. Completing the purchase by the user's desired deadline is prioritized first because meeting the user's timing requirement is a primary feasibility objective. The remaining keys progressively prefer fewer lifestyle changes, lower cost, earlier payment, fewer payments, and deterministic tie-breaking.
+
+### The 6-Key Lexicographical Hierarchy
+
+When multiple safe payment candidates exist, the `PlanRanker` selects the single optimal plan using the locked 6-key hierarchy:
+
+1. **Deadline Compliance** (`0` if `completes_by_deadline` else `1`): Completing the full request by `desired_completion_date` is prioritized first among safe plans.
+2. **Spending Changes Avoided** (`len(candidate.spending_changes)`): Prefers plans requiring zero disruption to existing recurring expenses (0 changes before 1, 2, or 3).
+3. **Total Cost Minimized** (`candidate.total_cost`): Minimizes total amount paid, penalizing interest, financing charges, or installment fees.
+4. **Earliest Execution Date** (`candidate.payments[0][0]`): Prefers plans that can begin execution earlier.
+5. **Fewer Payment Installments** (`len(candidate.payments)`): Prefers simpler payment structures (e.g. 1 payment over 2, 2 over 3+).
+6. **Stable Tie-Breaking** (`candidate.payment_option_id or ""`): Deterministic lexicographical tie-breaker on option identifiers.
 
 ---
 

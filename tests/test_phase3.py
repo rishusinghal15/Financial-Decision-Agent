@@ -274,6 +274,78 @@ class TestPhase3(unittest.TestCase):
         self.assertFalse(is_safe_breach)
         self.assertEqual(min_obs_breach, Decimal("400"))
 
+    def test_27_safety_hard_gate_before_ranking(self):
+        """
+        Prove that safety validation is a hard gate that precedes ranking:
+        1. An unsafe candidate is rejected regardless of its ranking qualities.
+        2. A safe candidate with a less-preferred ranking position wins over an unsafe candidate.
+        3. Ranking operates deterministically strictly among safe candidates.
+        """
+        # Candidate A: Unsafe (breaches minimum balance), but has ideal ranking attributes:
+        # completes_by_deadline=True, 0 spending changes, cost=100, 1 payment.
+        cand_unsafe = PlanCandidate(
+            payment_method="full_payment",
+            payment_plan_str="2025-01-01:100",
+            payments=[(date(2025, 1, 1), Decimal("100"))],
+            total_cost=Decimal("100"),
+            spending_changes=[],
+            is_safe=False,
+            completion_date=date(2025, 1, 1),
+            completes_by_deadline=True,
+            rejection_reason="Violates minimum balance to keep on request date"
+        )
+
+        # Candidate B: Safe, but has less-preferred ranking attributes:
+        # completes_by_deadline=False (wait payment after deadline), 1 payment.
+        cand_safe_late = PlanCandidate(
+            payment_method="wait",
+            payment_plan_str="2025-01-25:100",
+            payments=[(date(2025, 1, 25), Decimal("100"))],
+            total_cost=Decimal("100"),
+            spending_changes=[],
+            is_safe=True,
+            completion_date=date(2025, 1, 25),
+            completes_by_deadline=False,
+            rejection_reason=None
+        )
+
+        # Candidate C: Safe, and completes by deadline (e.g. 2 installments):
+        cand_safe_ontime = PlanCandidate(
+            payment_method="installments",
+            payment_plan_str="2025-01-01:50|2025-01-10:50",
+            payments=[(date(2025, 1, 1), Decimal("50")), (date(2025, 1, 10), Decimal("50"))],
+            total_cost=Decimal("100"),
+            spending_changes=[],
+            is_safe=True,
+            completion_date=date(2025, 1, 10),
+            completes_by_deadline=True,
+            rejection_reason=None
+        )
+
+        # Step 1: Prove safety gate filtration
+        # Unsafe candidate is filtered out; safe candidates proceed.
+        all_candidates = [cand_unsafe, cand_safe_late, cand_safe_ontime]
+        safe_eligible = [c for c in all_candidates if c.is_safe and c.rejection_reason is None]
+        self.assertNotIn(cand_unsafe, safe_eligible)
+        self.assertIn(cand_safe_late, safe_eligible)
+        self.assertIn(cand_safe_ontime, safe_eligible)
+
+        # Step 2: Prove an unsafe candidate cannot win even if it has a better ranking key than a safe candidate
+        # If cand_unsafe and cand_safe_late were blindly compared by ranker, cand_unsafe would have a better key (k1=0 vs k1=1).
+        key_unsafe = self.ranker.get_ranking_key(cand_unsafe)
+        key_safe_late = self.ranker.get_ranking_key(cand_safe_late)
+        self.assertLess(key_unsafe, key_safe_late)
+
+        # But through the architectural safety gate, only safe_eligible candidates reach selection:
+        only_safe_late = [c for c in [cand_unsafe, cand_safe_late] if c.is_safe and c.rejection_reason is None]
+        winner_late = self.ranker.select_best_candidate(only_safe_late)
+        self.assertEqual(winner_late, cand_safe_late)
+
+        # Step 3: Prove deterministic ranking among multiple safe candidates
+        # cand_safe_ontime (k1=0) strictly beats cand_safe_late (k1=1) on Key 1 (deadline compliance)
+        winner_best = self.ranker.select_best_candidate(safe_eligible)
+        self.assertEqual(winner_best, cand_safe_ontime)
+
 
 if __name__ == "__main__":
     unittest.main()

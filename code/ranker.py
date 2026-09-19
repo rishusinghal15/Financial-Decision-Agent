@@ -12,8 +12,18 @@ from models import PlanCandidate
 
 class PlanRanker:
     """
-    Ranks safe eligible candidate payment plans using the locked 6-key hierarchy:
-    
+    Ranks safe eligible candidate payment plans using the locked 6-key hierarchy.
+
+    Architectural Invariant:
+    Safety validation is a hard gate. Ranking operates ONLY on candidates that have
+    already been validated as safe (maintaining the minimum balance invariant across
+    the forecast horizon). Unsafe candidates are discarded before ranking begins.
+
+    Among safe candidates, deadline completion is prioritized first because completing
+    the requested expense within its required deadline is a primary feasibility objective.
+    The remaining keys progressively prefer fewer lifestyle changes, lower cost, earlier
+    payment, fewer payments, and deterministic tie-breaking:
+
     1. Complete the full request by desired_completion_date (True before False).
     2. Require no spending changes (0 changes before 1, 2, 3).
     3. Minimize total amount paid (lowest total_cost first).
