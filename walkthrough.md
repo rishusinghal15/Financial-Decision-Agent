@@ -541,7 +541,9 @@ code.zip
     ├── test_phase1.py
     ├── test_phase2.py
     ├── test_phase3.py
-    └── test_phase4.py
+    ├── test_phase4.py
+    ├── test_gemini_config.py
+    └── test_telemetry_provenance.py
 ```
 
 ### Exclusions Verified:
@@ -562,7 +564,7 @@ code.zip
 | **Output File** | `output.csv` (250 rows, 8 columns, 0 validator errors) | **VALIDATED & READY** |
 | **Dataset Integrity** | `dataset/` files untouched | **100% PRISTINE** |
 | **Telemetry & Report** | `code/evaluation/usage_report.md` | **VERIFIED & ACCURATE** |
-| **Submission Archive** | `code.zip` (26 manifest files, 0 excluded artifacts) | **PACKAGED (74.18 KB)** |
+| **Submission Archive** | `code.zip` (22 manifest files, 0 excluded artifacts) | **PACKAGED (73.05 KB)** |
 | **Evaluation Readiness** | Deterministic reproducibility with failure-safe AI fallback | **READY FOR SUBMISSION** |
 
 ---

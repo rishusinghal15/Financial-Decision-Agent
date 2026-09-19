@@ -4,7 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests: 50/50 Passed](https://img.shields.io/badge/tests-50%2F50%20passed-brightgreen.svg)]()
+[![Tests: 66/66 Passed](https://img.shields.io/badge/tests-66%2F66%20passed-brightgreen.svg)]()
 [![Validation: 0 Errors](https://img.shields.io/badge/validation-0%20errors-brightgreen.svg)]()
 
 ---
@@ -347,7 +347,9 @@ Financial-Decision-Agent/
 │   ├── test_phase1.py              # Models, loader & FX normalizer tests (12 tests)
 │   ├── test_phase2.py              # Extraction, provenance & conflict tests (12 tests)
 │   ├── test_phase3.py              # Forecaster, decision engine & ranker tests (14 tests)
-│   └── test_phase4.py              # End-to-end integration & validation tests (12 tests)
+│   ├── test_phase4.py              # End-to-end integration & validation tests (12 tests)
+│   ├── test_gemini_config.py       # Centralized Gemini model configuration tests (8 tests)
+│   └── test_telemetry_provenance.py# Telemetry provenance & run_type isolation tests (8 tests)
 ├── .env.example                    # Configuration template for API keys
 ├── .gitignore                      # Clean Git exclusion rules
 ├── AGENTS.md                       # Machine-readable coding agent contract
@@ -485,7 +487,7 @@ request_02,18376094.03,affordable_with_plan,installments,2025-08-08:15952906.67|
 
 ## 17. Verification & Validation Results
 
-* **Automated Unit Tests**: `50 / 50` passed (100%).
+* **Automated Unit Tests**: `66 / 66` passed (100%).
 * **Production Dataset Evaluation**: `250 / 250` requests processed.
 * **Unique ID Integrity**: `250 / 250` 1-to-1 match with `dataset/requests.csv`.
 * **Output Schema Violations**: `0` errors.
