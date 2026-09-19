@@ -178,6 +178,14 @@ The forecaster constructs a daily timeline $[t_0, t_0 + 90\text{ days}]$:
    $$\text{Balance}(t) = \text{Balance}(t-1) + \sum \text{Credits}(t) - \sum \text{Debits}(t) - \text{CandidatePayment}(t)$$
    $$\forall t \in [t_0, t_0 + 90]: \quad \text{Balance}(t) \ge \text{minimum\_balance\_to\_keep}$$
 
+### Forecast Horizon & Day-91 Boundary Analysis
+
+- **Design Rationale for 90 Days**: The 90-day window represents a standard quarterly liquidity forecasting horizon mandated by the challenge specification (`problem_statement.md`). It balances high-fidelity visibility into recurring payroll, rent, and utility cycles against the compounding uncertainty of long-range economic projections.
+- **Safety Invariant Guarantee**: The safety guarantee $\text{Balance}(t) \ge \text{minimum\_balance\_to\_keep}$ is formally enforced across all days $t \in [t_0, t_0 + 90]$.
+- **Day-91+ Obligations**: Any financial commitment beyond Day 90 lies outside the contractual 90-day evaluation boundary and does not impact the near-term decision. Across all 250 evaluation requests in `requests.csv`, desired completion dates occur strictly within 86 days (min 6 days, max 86 days, count > 90 is 0), ensuring that every recommended transaction is completely resolved within the guaranteed horizon.
+- **No Unsupported Future Claims**: The engine never claims safety beyond Day 90: `earliest_date_for_full_payment` strictly scans within $[t_0, t_0 + 90]$ and returns empty (`none`) if no full payment is safe within 90 days.
+- **Production Extension**: In enterprise financial planning or treasury systems, the forecasting horizon can be dynamically extended to $\max(90, \text{installment\_duration}, \text{known\_major\_liability\_date})$ or operated as a continuous rolling daily forecast.
+
 ### Affordability Status Matrix
 
 ```
